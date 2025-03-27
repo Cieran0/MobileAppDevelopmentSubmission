@@ -1,0 +1,101 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F1F',
+  },
+  subtitle: {
+    fontSize: 24,
+    color: '#888',
+    marginBottom: 40,
+    fontWeight: '300',
+  },
+  timer: {
+    color: '#00FF88',
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  button: {
+    backgroundColor: '#2a2a2a',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#007BFF',
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#007BFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: 1.1,
+  },
+  finishButton: {
+    backgroundColor: '#00FF88',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    elevation: 3,
+  },
+  finishButtonText: {
+    color: '#0A0A0A',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  exerciseCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  exerciseName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  exerciseDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailText: {
+    color: '#888888',
+    fontSize: 16,
+  },
+  addButtonText: {
+    color: '#00FF88',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+});

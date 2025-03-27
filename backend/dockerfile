@@ -1,0 +1,104 @@
+# Stage 1: Build libbarbell and the Rust application
+FROM rust:latest AS builder
+
+# Install required build dependencies
+RUN apt-get update && apt-get install -y \
+    make g++ pkg-config libopencv-dev libopencv-contrib-dev cmake git \
+    libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev ffmpeg \
+    libxi-dev libgl1 libgl1-mesa-dev libglx-mesa0 xvfb && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+COPY . .
+
+# Clone and build raylib
+RUN git clone https://github.com/raysan5/raylib.git && \
+    cd raylib && mkdir build && cd build && \
+    cmake .. && make -j$(nproc) && make install
+
+# Build libbarbell
+RUN make -C src/cpp
+RUN mv src/cpp/libbarbell.a ./libbarbell.a
+
+# Build Rust application
+RUN cargo build --release
+
+# Stage 2: Runtime image
+FROM debian:bookworm-20250317-slim
+
+# Install required runtime dependencies (including X11 libraries and ffmpeg)
+RUN apt-get update && apt-get install -y \
+    libopencv-dev libopencv-contrib-dev wget tar net-tools jq curl ffmpeg \
+    xvfb libx11-6 libxcursor1 libxrandr2 libxinerama1 libxi6 libgl1 libglx-mesa0 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install ngrok
+RUN wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz && \
+    tar -xzf ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin && \
+    rm ngrok-v3-stable-linux-amd64.tgz
+
+WORKDIR /usr/src/app
+
+# Copy artifacts from builder stage
+COPY --from=builder /usr/local/lib/libraylib.a /usr/local/lib/libraylib.a
+COPY --from=builder /usr/src/app/target/release/workout-tracker-backend .
+COPY --from=builder /usr/src/app/libbarbell.a .
+COPY --from=builder /usr/src/app/cert.sh .
+COPY --from=builder /usr/src/app/workout_tracker.db .
+
+# Set environment variables for X11 and library paths
+ENV DISPLAY=:99
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/x86_64-linux-gnu:/usr/local/lib64:$LD_LIBRARY_PATH
+
+# Expose necessary ports
+EXPOSE 25561
+EXPOSE 4040
+
+# Create a startup script to initialize everything
+RUN echo '#!/bin/sh\n\
+echo "Starting virtual display..."\n\
+Xvfb :99 -screen 0 1024x768x24 &\n\
+sleep 2\n\
+\n\
+echo "Running cert.sh..."\n\
+./cert.sh || { echo "cert.sh failed"; exit 1; }\n\
+\n\
+echo "Starting workout-tracker-backend with virtual display..."\n\
+xvfb-run -a ./workout-tracker-backend &\n\
+APP_PID=$!\n\
+\n\
+echo "Checking if application is listening on port 25561..."\n\
+sleep 5\n\
+netstat -tuln | grep 25561 || { echo "Application is not listening on port 25561"; exit 1; }\n\
+\n\
+echo "Starting ngrok..."\n\
+if [ ! -z "$NGROK_TOKEN" ]; then\n\
+    echo "Adding ngrok authtoken..."\n\
+    ngrok config add-authtoken $NGROK_TOKEN || { echo "Failed to add ngrok token"; exit 1; }\n\
+fi\n\
+\n\
+echo "Exposing port 25561 with ngrok..."\n\
+ngrok http https://localhost:25561 --log=stdout > ngrok.log 2>&1 &\n\
+NGROK_PID=$!\n\
+\n\
+# Wait for ngrok to start\n\
+sleep 5\n\
+\n\
+# Extract and display the ngrok URL\n\
+NGROK_URL=$(curl --silent --show-error --retry 10 --retry-connrefused http://127.0.0.1:4040/api/tunnels | jq -r '"'"'.tunnels[0].public_url'"'"')\n\
+if [ -z "$NGROK_URL" ] || [ "$NGROK_URL" = "null" ]; then\n\
+    echo "Failed to retrieve ngrok URL"\n\
+    exit 1\n\
+fi\n\
+\n\
+echo "Ngrok is running at: $NGROK_URL"\n\
+\n\
+# Keep the container running by waiting for the backend process\n\
+wait $APP_PID\n\
+' > start.sh && chmod +x start.sh
+
+# Make cert.sh executable
+RUN chmod +x cert.sh
+
+# Run the startup script
+CMD ["./start.sh"]

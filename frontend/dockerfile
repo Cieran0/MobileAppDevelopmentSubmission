@@ -1,0 +1,26 @@
+# Use the latest Node image as the base
+FROM node:latest
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of your project files (including run.sh)
+COPY . .
+
+# Ensure run.sh is executable
+RUN chmod +x run.sh
+
+# (Optional) Expose any ports required by Expo (default Expo ports)
+EXPOSE 19000
+EXPOSE 19001
+EXPOSE 19002
+EXPOSE 19006
+EXPOSE 8081
+
+
+# Run the shell script when the container starts
+CMD ["./run.sh"]

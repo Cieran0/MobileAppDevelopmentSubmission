@@ -1,0 +1,10 @@
+/target
+*.o
+*.a
+*.py
+*.mov
+*.mp4
+*.json
+*.pem
+*.sh
+ssl/*
